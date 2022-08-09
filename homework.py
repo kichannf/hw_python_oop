@@ -1,24 +1,23 @@
+from abc import abstractmethod
+from dataclasses import dataclass
+from typing import Dict, Type
+
+
+@dataclass
 class InfoMessage:
     """Информационное сообщение о тренировке."""
-    def __init__(self,
-                 training_type: str,
-                 duration: float,
-                 distance: float,
-                 speed: float,
-                 calories: float,
-                 ) -> None:
-        self.training_type: str = training_type
-        self.duration: str = "%.3f" % duration
-        self.distance: str = "%.3f" % distance
-        self.speed: str = "%.3f" % speed
-        self.calories: str = "%.3f" % calories
+    training_type: str
+    duration: float
+    distance: float
+    speed: float
+    calories: float
 
     def get_message(self) -> str:
         return (f'Тип тренировки: {self.training_type}; '
-                f'Длительность: {self.duration} ч.; '
-                f'Дистанция: {self.distance} км; '
-                f'Ср. скорость: {self.speed} км/ч; '
-                f'Потрачено ккал: {self.calories}.')
+                f'Длительность: {"%.3f" % self.duration} ч.; '
+                f'Дистанция: {"%.3f" % self.distance} км; '
+                f'Ср. скорость: {"%.3f" % self.speed} км/ч; '
+                f'Потрачено ккал: {"%.3f" % self.calories}.')
 
 
 class Training:
@@ -44,6 +43,7 @@ class Training:
         """Получить среднюю скорость движения."""
         return self.get_distance() / self.duration
 
+    @abstractmethod
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
         pass
@@ -59,19 +59,19 @@ class Training:
 
 class Running(Training):
     """Тренировка: бег."""
-    coeff_calorie_1: int = 18
-    coeff_calorie_2: int = 20
+    COEFF_CALORIE_1: int = 18
+    COEFF_CALORIE_2: int = 20
 
     def get_spent_calories(self) -> float:
-        return ((self.coeff_calorie_1 * self.get_mean_speed()
-                - self.coeff_calorie_2) * self.weight / self.M_IN_KM
+        return ((self.COEFF_CALORIE_1 * self.get_mean_speed()
+                - self.COEFF_CALORIE_2) * self.weight / self.M_IN_KM
                 * (self.duration * self.HOUR_MINUTES))
 
 
 class SportsWalking(Training):
-    coeff_calorie_3: float = 0.035
-    coeff_calorie_4: int = 2
-    coeff_calorie_5: float = 0.029
+    COEFF_CALORIE_1: float = 0.035
+    COEFF_CALORIE_2: int = 2
+    COEFF_CALORIE_3: float = 0.029
     """Тренировка: спортивная ходьба."""
     def __init__(self,
                  action: int,
@@ -83,16 +83,16 @@ class SportsWalking(Training):
         self.height: float = height
 
     def get_spent_calories(self) -> float:
-        return ((self.coeff_calorie_3 * self.weight
-                + (self.get_mean_speed() ** self.coeff_calorie_4
-                 // self.height) * self.coeff_calorie_5 * self.weight)
+        return ((self.COEFF_CALORIE_1 * self.weight
+                + (self.get_mean_speed() ** self.COEFF_CALORIE_2
+                 // self.height) * self.COEFF_CALORIE_3 * self.weight)
                 * self.duration * self.HOUR_MINUTES)
 
 
 class Swimming(Training):
     LEN_STEP: float = 1.38
-    coeff_calorie_6: float = 1.1
-    coeff_calorie_7: int = 2
+    COEFF_CALORIE_1: float = 1.1
+    COEFF_CALORIE_2: int = 2
     """Тренировка: плавание."""
     def __init__(self,
                  action: int,
@@ -110,16 +110,20 @@ class Swimming(Training):
                 / self.M_IN_KM / self.duration)
 
     def get_spent_calories(self) -> float:
-        return ((self.get_mean_speed() + self.coeff_calorie_6)
-                * self.coeff_calorie_7 * self.weight)
+        return ((self.get_mean_speed() + self.COEFF_CALORIE_1)
+                * self.COEFF_CALORIE_2 * self.weight)
 
 
 def read_package(workout_type: str, data: list) -> Training:
     """Прочитать данные полученные от датчиков."""
-    dict_type_training = {'SWM': Swimming,
-                          'RUN': Running,
-                          'WLK': SportsWalking}
-    return dict_type_training[workout_type](*data)
+    dict_type_training: Dict[str, Type[Training]] = {'SWM': Swimming,
+                                                     'RUN': Running,
+                                                     'WLK': SportsWalking}
+    try:
+        return dict_type_training[workout_type](*data)
+    except KeyError:
+        print(f'Oops, I dont think I know this kind of sport yet. '
+              f'Try something out of this {list(dict_type_training.keys())}')
 
 
 def main(training: Training) -> None:
